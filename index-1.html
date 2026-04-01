@@ -1,0 +1,1757 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>The Last Island</title>
+  <style>
+    :root{
+      --bg:#07111d;
+      --panel:rgba(9,16,28,.84);
+      --panel2:rgba(17,27,43,.96);
+      --text:#f2f6ff;
+      --muted:#b9c7de;
+      --accent:#89c5ff;
+      --accent2:#96f0c3;
+      --danger:#ff8d8d;
+      --gold:#ffd67a;
+      --shadow:0 16px 40px rgba(0,0,0,.34);
+      --border:1px solid rgba(255,255,255,.12);
+      --radius:18px;
+    }
+    html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);}
+    body{overscroll-behavior:none}
+    #app{position:fixed;inset:0;background:linear-gradient(180deg,#07111d,#10243a 60%,#07111d);}
+    canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+    #overlay{position:absolute;inset:0;pointer-events:none;}
+    .topbar{position:absolute;left:12px;right:12px;top:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none;}
+    .chip{background:rgba(9,16,28,.6);backdrop-filter:blur(8px);border:var(--border);border-radius:999px;padding:8px 12px;box-shadow:var(--shadow);}
+    .title{font-weight:800;letter-spacing:.05em;font-size:15px;color:#fff}
+    .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+    .stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:60vw}
+    .stat{background:rgba(9,16,28,.6);backdrop-filter:blur(8px);border:var(--border);border-radius:999px;padding:8px 10px;font-size:12px;color:#dfeaff;box-shadow:var(--shadow);}
+    #message{position:absolute;left:50%;bottom:206px;transform:translateX(-50%);max-width:min(92vw,760px);opacity:0;transition:opacity .25s ease;pointer-events:none}
+    .bubble{background:rgba(12,18,30,.84);border:var(--border);box-shadow:var(--shadow);border-radius:18px;padding:14px 16px;font-size:15px;line-height:1.45;color:var(--text)}
+    #controls{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:10px;pointer-events:auto}
+    .ctl{min-width:114px;padding:12px 14px;border-radius:16px;background:rgba(16,25,40,.78);backdrop-filter:blur(10px);border:var(--border);box-shadow:var(--shadow);color:#fff;font-weight:800;text-align:left}
+    .ctl small{display:block;font-weight:600;color:var(--muted);font-size:11px;margin-top:2px}
+    #joystickWrap{position:absolute;left:16px;bottom:16px;width:160px;height:160px;pointer-events:auto;touch-action:none;user-select:none}
+    #joyBase{position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(2px)}
+    #joyKnob{position:absolute;left:50%;top:50%;width:64px;height:64px;margin-left:-32px;margin-top:-32px;border-radius:50%;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.38),rgba(255,255,255,.12) 45%,rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);box-shadow:0 8px 20px rgba(0,0,0,.24)}
+    #menu, #modal, #notebook, #ending {
+      position:absolute;inset:0;display:none;pointer-events:auto;
+    }
+    .center{height:100%;display:flex;align-items:center;justify-content:center;padding:16px}
+    .card{width:min(900px,100%);background:rgba(8,16,28,.8);backdrop-filter:blur(12px);border:var(--border);box-shadow:var(--shadow);border-radius:28px;padding:22px}
+    .grid{display:grid;grid-template-columns:1.12fr .88fr;gap:18px}
+    .hero h1{margin:0 0 8px;font-size:clamp(34px,6vw,58px);line-height:.95;letter-spacing:.03em}
+    .hero p{margin:0 0 12px;color:var(--muted);font-size:15px;line-height:1.68;max-width:62ch}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .btn{appearance:none;border:none;cursor:pointer;font:inherit;border-radius:16px;padding:13px 18px;box-shadow:var(--shadow);font-weight:800}
+    .btn.primary{background:linear-gradient(180deg,#234f41,#173429);color:#fff}
+    .btn.secondary{background:linear-gradient(180deg,#2a3955,#18263b);color:#eef4ff}
+    .btn.warn{background:linear-gradient(180deg,#59383d,#382024);color:#fff}
+    .btn.ghost{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.12)}
+    .sidebox{background:var(--panel2);border:var(--border);border-radius:20px;padding:16px}
+    .sidebox h3{margin:0 0 8px;font-size:15px}
+    .sidebox p{margin:0;color:var(--muted);font-size:13px;line-height:1.58}
+    .tiny{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .tab{padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.05);color:#d7e3ff;border:1px solid rgba(255,255,255,.08);font-weight:700;font-size:13px}
+    .tab.active{background:rgba(137,197,255,.18);border-color:rgba(137,197,255,.35);color:#fff}
+    .boxTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .boxTitle h2{margin:0;font-size:18px}
+    .boxTitle .small{font-size:12px;color:var(--muted)}
+    .content{padding:16px;font-size:15px;line-height:1.7;white-space:pre-wrap;color:#eef4ff;overflow:auto;max-height:calc(86vh - 180px)}
+    .foot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .nbCard{width:min(960px,calc(100vw - 24px));height:min(86vh,820px);margin:12px auto;background:linear-gradient(180deg,rgba(20,27,39,.98),rgba(12,18,28,.98));border:var(--border);border-radius:28px;box-shadow:var(--shadow);display:grid;grid-template-rows:auto auto 1fr auto;overflow:hidden}
+    .fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s ease}
+    .fade.on{opacity:1}
+    .hide{display:none !important}
+    .choiceRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .muted{color:var(--muted)}
+    @media (max-width:780px){
+      .grid{grid-template-columns:1fr}
+      #controls{right:8px;bottom:8px}
+      .ctl{min-width:96px;padding:11px 12px}
+      #joystickWrap{left:10px;bottom:10px;width:146px;height:146px}
+      #message{bottom:184px}
+      .card{padding:18px}
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+  <div id="overlay">
+    <div class="topbar">
+      <div class="chip">
+        <div class="title">THE LAST ISLAND</div>
+        <div class="subtitle" id="sceneLabel">Menu</div>
+      </div>
+      <div class="stats">
+        <div class="stat" id="statChapter">Chapter: 0</div>
+        <div class="stat" id="statHope">Hope: 0</div>
+        <div class="stat" id="statUnderstand">Understanding: 0</div>
+        <div class="stat" id="statAvoid">Avoidance: 0</div>
+      </div>
+    </div>
+
+    <div id="message"><div class="bubble" id="msgText"></div></div>
+
+    <div id="joystickWrap" aria-label="Virtual joystick">
+      <div id="joyBase"></div>
+      <div id="joyKnob"></div>
+    </div>
+
+    <div id="controls">
+      <button class="ctl" id="btnInteract">Interact<small>Tap / E</small></button>
+      <button class="ctl" id="btnNotebook">Notebook<small>N</small></button>
+      <button class="ctl" id="btnSound">Sound<small>On</small></button>
+    </div>
+
+    <div id="menu">
+      <div class="center">
+        <div class="card grid">
+          <div class="hero">
+            <h1>The Last Island</h1>
+            <p>A slow, atmospheric, choice-based 2D story adventure. Explore the island, read memories, make choices, solve light narrative puzzles, and reach different endings depending on what you do.</p>
+            <div class="actions">
+              <button class="btn primary" id="btnNew">New Game</button>
+              <button class="btn secondary" id="btnContinue">Continue</button>
+              <button class="btn ghost" id="btnNotebookDemo">Notebook</button>
+            </div>
+            <div class="tiny">This is a browser version meant for GitHub Pages. It uses no external assets and saves locally in the browser.</div>
+          </div>
+          <div style="display:grid;gap:10px;align-content:start">
+            <div class="sidebox">
+              <h3>Core features</h3>
+              <p>Virtual joystick, smooth camera, notebook, dialogue choices, autosave, chapter progression, and multiple endings.</p>
+            </div>
+            <div class="sidebox">
+              <h3>How to play</h3>
+              <p>Move with the joystick. Tap Interact near NPCs or story objects. Open the Notebook to read memories, symbols, and choices.</p>
+            </div>
+            <div class="sidebox">
+              <h3>Story structure</h3>
+              <p>Arrival → Old Man → Child → Sailor → Island Reacts → Final Choice → Ending.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal">
+      <div class="center">
+        <div class="card" style="width:min(840px,100%)">
+          <div class="boxTitle">
+            <div>
+              <h2 id="modalTitle">Title</h2>
+              <div class="small">The Last Island</div>
+            </div>
+            <button class="btn secondary" id="btnModalClose">Close</button>
+          </div>
+          <div class="content" id="modalText"></div>
+          <div class="choiceRow" id="modalChoices"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="notebook">
+      <div class="center">
+        <div class="nbCard">
+          <div class="boxTitle" style="padding:16px 16px 0 16px">
+            <div>
+              <h2>Notebook</h2>
+              <div class="small">Automatic memories and choices</div>
+            </div>
+            <button class="btn secondary" id="btnNotebookClose">Close</button>
+          </div>
+          <div class="tabs" id="nbTabs">
+            <button class="tab active" data-tab="memories">Memories</button>
+            <button class="tab" data-tab="people">People</button>
+            <button class="tab" data-tab="symbols">Symbols</button>
+          </div>
+          <div class="content" id="nbContent"></div>
+          <div class="foot">
+            <div id="nbStats">Saved locally in browser.</div>
+            <div>Entries update automatically.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ending">
+      <div class="center">
+        <div class="card" style="width:min(840px,100%)">
+          <div class="boxTitle">
+            <div>
+              <h2>Ending Reached</h2>
+              <div class="small" id="endingLabel">Ending</div>
+            </div>
+          </div>
+          <div class="content" id="endingText"></div>
+          <div class="choiceRow">
+            <button class="btn primary" id="btnRestart">New Game</button>
+            <button class="btn secondary" id="btnBackMenu">Back to Menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fade" id="fade"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const menu = document.getElementById('menu');
+  const modal = document.getElementById('modal');
+  const notebook = document.getElementById('notebook');
+  const ending = document.getElementById('ending');
+  const fade = document.getElementById('fade');
+  const sceneLabel = document.getElementById('sceneLabel');
+  const statChapter = document.getElementById('statChapter');
+  const statHope = document.getElementById('statHope');
+  const statUnderstand = document.getElementById('statUnderstand');
+  const statAvoid = document.getElementById('statAvoid');
+  const msg = document.getElementById('message');
+  const msgText = document.getElementById('msgText');
+  const joyWrap = document.getElementById('joystickWrap');
+  const joyKnob = document.getElementById('joyKnob');
+  const btnInteract = document.getElementById('btnInteract');
+  const btnNotebook = document.getElementById('btnNotebook');
+  const btnSound = document.getElementById('btnSound');
+  const btnNew = document.getElementById('btnNew');
+  const btnContinue = document.getElementById('btnContinue');
+  const btnNotebookDemo = document.getElementById('btnNotebookDemo');
+  const btnModalClose = document.getElementById('btnModalClose');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalText = document.getElementById('modalText');
+  const modalChoices = document.getElementById('modalChoices');
+  const btnNotebookClose = document.getElementById('btnNotebookClose');
+  const nbContent = document.getElementById('nbContent');
+  const nbStats = document.getElementById('nbStats');
+  const nbTabs = document.getElementById('nbTabs');
+  const endingLabel = document.getElementById('endingLabel');
+  const endingText = document.getElementById('endingText');
+  const btnRestart = document.getElementById('btnRestart');
+  const btnBackMenu = document.getElementById('btnBackMenu');
+
+  const SAVE_KEY = 'the_last_island_save_v3';
+  const BASE_W = 1280, BASE_H = 720;
+  const state = {
+    chapter: 0,
+    hope: 0,
+    understanding: 0,
+    avoidance: 0,
+    scene: 'menu',
+    player: { x: 160, y: 540, vx: 0, vy: 0, speed: 180, r: 18 },
+    camera: { x: 640, y: 360 },
+    joystick: { x: 0, y: 0, active: false, pointerId: null, baseX: 96, baseY: 96, maxRadius: 48, knobX: 0, knobY: 0 },
+    flags: {},
+    memories: {},
+    soundOn: true,
+    activeTab: 'memories',
+    modalOpen: false,
+    notebookOpen: false,
+    endingOpen: false,
+    busy: false,
+    lastMessage: '',
+    lastMessageUntil: 0,
+    controlsEnabled: true
+  };
+
+  const sceneData = {
+    menu: { title: 'Menu', sky1:'#08111d', sky2:'#0f2136', ground:'#0a1524' },
+    arrival: { title: 'Arrival', sky1:'#091321', sky2:'#17304a', ground:'#172b2e' },
+    oldMan: { title: 'Old Man', sky1:'#0b1321', sky2:'#1b2d39', ground:'#15251b' },
+    child: { title: 'Child', sky1:'#0b1520', sky2:'#22333d', ground:'#1b2b2e' },
+    sailor: { title: 'Sailor', sky1:'#07101a', sky2:'#16212b', ground:'#121a21' },
+    island: { title: 'Island Reacts', sky1:'#08111d', sky2:'#122232', ground:'#101a1f' },
+    final: { title: 'Final Choice', sky1:'#11131b', sky2:'#171b26', ground:'#0b1016' },
+    endingHeal: { title: 'Ending', sky1:'#0d1720', sky2:'#183b31', ground:'#0d1a16' },
+    endingLeave: { title: 'Ending', sky1:'#09111d', sky2:'#18263d', ground:'#09111d' },
+    endingStay: { title: 'Ending', sky1:'#0a0f18', sky2:'#202536', ground:'#0b0f16' },
+    endingSilent: { title: 'Ending', sky1:'#090b10', sky2:'#11141d', ground:'#090b10' }
+  };
+
+  const note = {
+    memories: [
+      ['Arrival', 'I woke on the shore with no clear memory. The island felt familiar, like it had been waiting.'],
+      ['Old Man', 'An old man stayed behind when others left. He speaks in half-truths, but he remembers more than he says.'],
+      ['Child', 'A child sees the island as alive. Their honesty makes hidden things easier to understand.'],
+      ['Sailor', 'A sailor tried to escape and failed. Regret follows him like a shadow.'],
+      ['Island', 'The island reacts to help, avoidance, patience, and truth.'],
+      ['Final', 'The final choice depends on what I learned and what I refused to face.']
+    ],
+    people: [
+      ['Old Man', 'A quiet survivor. If listened to, he opens paths and truths.'],
+      ['Child', 'Curious and honest. If trusted, the child reveals hopeful details about the island.'],
+      ['Sailor', 'Defensive and tired. He represents fear, regret, and the wish to leave.']
+    ],
+    symbols: [
+      ['🌿 Patience', 'Help, listen, wait. Patience unlocks calmer paths.'],
+      ['🌊 Leaving', 'Leaving is a choice. It can be freedom or avoidance.'],
+      ['🕯️ Memory', 'The notebook keeps what the player chooses to remember.']
+    ]
+  };
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function dist(a, b, c, d) { return Math.hypot(a - c, b - d); }
+  function insideRect(px, py, r) { return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h; }
+
+  function showMessage(text, duration = 2200) {
+    state.lastMessage = text;
+    msgText.textContent = text;
+    msg.style.opacity = 1;
+    state.lastMessageUntil = performance.now() + duration;
+  }
+  function hideMessage() {
+    msg.style.opacity = 0;
+  }
+
+  function audioPulse(type = 'click') {
+    if (!state.soundOn) return;
+    try {
+      const ac = getAudio();
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      const now = ac.currentTime;
+      const freq = type === 'good' ? 540 : type === 'bad' ? 190 : 320;
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.00001, now + 0.08);
+      o.connect(g); g.connect(ac.destination);
+      o.start(now); o.stop(now + 0.11);
+    } catch (e) {}
+  }
+  let audioCtx = null;
+  function getAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+    return audioCtx;
+  }
+
+  function saveGame() {
+    const data = {
+      chapter: state.chapter,
+      hope: state.hope,
+      understanding: state.understanding,
+      avoidance: state.avoidance,
+      scene: state.scene,
+      player: state.player,
+      camera: state.camera,
+      flags: state.flags,
+      memories: state.memories,
+      soundOn: state.soundOn
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    updateHud();
+  }
+
+  function loadGame() {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    try {
+      const data = JSON.parse(raw);
+      state.chapter = data.chapter ?? 1;
+      state.hope = data.hope ?? 0;
+      state.understanding = data.understanding ?? 0;
+      state.avoidance = data.avoidance ?? 0;
+      state.scene = data.scene ?? 'arrival';
+      state.player = data.player ?? state.player;
+      state.camera = data.camera ?? state.camera;
+      state.flags = data.flags ?? {};
+      state.memories = data.memories ?? {};
+      state.soundOn = data.soundOn ?? true;
+      updateHud();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function resetGame() {
+    state.chapter = 1;
+    state.hope = 0;
+    state.understanding = 0;
+    state.avoidance = 0;
+    state.scene = 'arrival';
+    state.player = { x: 160, y: 540, vx: 0, vy: 0, speed: 180, r: 18 };
+    state.camera = { x: 640, y: 360 };
+    state.flags = {
+      metOldMan:false,
+      helpedOldMan:false,
+      metChild:false,
+      playedWithChild:false,
+      metSailor:false,
+      deliveredLetter:false,
+      arrivalHint:false,
+      oldManHint:false,
+      childHint:false,
+      sailorHint:false,
+      islandHint:false
+    };
+    state.memories = {
+      intro: 'I arrived on the island.'
+    };
+    state.activeTab = 'memories';
+    state.modalOpen = false;
+    state.notebookOpen = false;
+    state.endingOpen = false;
+    closeOverlays();
+    showScene('arrival', true);
+    saveGame();
+    hideMenu();
+    audioPulse('good');
+  }
+
+  function showScene(sceneName, first = false) {
+    state.scene = sceneName;
+    updateHud();
+    if (!first) audioPulse('click');
+    if (sceneName === 'arrival') {
+      state.chapter = 1;
+      state.player.x = 150;
+      state.player.y = 540;
+      state.camera.x = state.player.x;
+      state.camera.y = state.player.y;
+      state.memories.arrival = 'I woke on the shore with no memory of how I arrived.';
+      showMessage('Reach the footprints and follow them inland.', 2600);
+    }
+    if (sceneName === 'oldMan') {
+      state.chapter = 2;
+      state.player.x = 140;
+      state.player.y = 520;
+      state.camera.x = state.player.x;
+      state.camera.y = state.player.y;
+      if (!state.flags.metOldMan) {
+        state.memories.oldman = 'An old man stayed behind when everyone else left.';
+        state.flags.metOldMan = true;
+      }
+      showMessage('Talk to the old man near the hut.', 2600);
+    }
+    if (sceneName === 'child') {
+      state.chapter = 3;
+      state.player.x = 160;
+      state.player.y = 540;
+      state.camera.x = state.player.x;
+      state.camera.y = state.player.y;
+      if (!state.flags.metChild) {
+        state.memories.child = 'A child sees the island as alive and remembers things the world hides.';
+        state.flags.metChild = true;
+      }
+      showMessage('Find the child in the flower field.', 2600);
+    }
+    if (sceneName === 'sailor') {
+      state.chapter = 4;
+      state.player.x = 170;
+      state.player.y = 530;
+      state.camera.x = state.player.x;
+      state.camera.y = state.player.y;
+      if (!state.flags.metSailor) {
+        state.memories.sailor = 'A sailor is stuck at the wreck with regret and a letter he cannot deliver.';
+        state.flags.metSailor = true;
+      }
+      showMessage('Approach the sailor near the broken ship.', 2600);
+    }
+    if (sceneName === 'island') {
+      state.chapter = 5;
+      state.player.x = 160;
+      state.player.y = 540;
+      state.camera.x = state.player.x;
+      state.camera.y = state.player.y;
+      state.memories.island = 'The island reacts to everything I have done so far.';
+      showMessage('The island core is ahead.', 2600);
+    }
+    if (sceneName === 'final') {
+      state.chapter = 6;
+      state.player.x = 280;
+      state.player.y = 500;
+      state.camera.x = state.player.x;
+      state.camera.y = state.player.y;
+      state.memories.final = 'This is the last decision.';
+      showMessage('Choose one of the final paths.', 2600);
+    }
+    if (sceneName.startsWith('ending')) {
+      state.chapter = 7;
+    }
+    saveGame();
+  }
+
+  function closeOverlays() {
+    modal.style.display = 'none';
+    notebook.style.display = 'none';
+    ending.style.display = 'none';
+    state.modalOpen = false;
+    state.notebookOpen = false;
+    state.endingOpen = false;
+  }
+
+  function updateHud() {
+    sceneLabel.textContent = sceneData[state.scene]?.title || state.scene;
+    statChapter.textContent = `Chapter: ${state.chapter}`;
+    statHope.textContent = `Hope: ${state.hope}`;
+    statUnderstand.textContent = `Understanding: ${state.understanding}`;
+    statAvoid.textContent = `Avoidance: ${state.avoidance}`;
+    btnSound.querySelector('small').textContent = state.soundOn ? 'On' : 'Off';
+  }
+
+  function openModal(title, text, choices) {
+    modalTitle.textContent = title;
+    modalText.textContent = text;
+    modalChoices.innerHTML = '';
+    choices.forEach(ch => {
+      const b = document.createElement('button');
+      b.className = 'btn ' + (ch.kind || 'secondary');
+      b.textContent = ch.label;
+      b.onclick = () => {
+        audioPulse(ch.kind === 'primary' ? 'good' : ch.kind === 'warn' ? 'bad' : 'click');
+        ch.onClick && ch.onClick();
+      };
+      modalChoices.appendChild(b);
+    });
+    modal.style.display = 'block';
+    state.modalOpen = true;
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+    state.modalOpen = false;
+  }
+
+  function openNotebook() {
+    state.notebookOpen = true;
+    notebook.style.display = 'block';
+    renderNotebook();
+  }
+
+  function closeNotebook() {
+    notebook.style.display = 'none';
+    state.notebookOpen = false;
+  }
+
+  function renderNotebook() {
+    const tab = state.activeTab;
+    const arr = tab === 'memories' ? note.memories : tab === 'people' ? note.people : note.symbols;
+    nbContent.textContent = arr.map(([k,v]) => `• ${k}: ${v}`).join('\n\n');
+    nbStats.textContent = `Hope: ${state.hope} • Understanding: ${state.understanding} • Avoidance: ${state.avoidance}`;
+    nbTabs.querySelectorAll('.tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+  }
+
+  function openEnding(kind, title, text) {
+    state.endingOpen = true;
+    endingLabel.textContent = title;
+    endingText.textContent = text;
+    ending.style.display = 'block';
+    modal.style.display = 'none';
+    notebook.style.display = 'none';
+  }
+
+  function showFinalEnding() {
+    const h = state.hope, u = state.understanding, a = state.avoidance;
+    const canHeal = h >= 2 && u >= 2;
+    const canLeave = u >= 2;
+    const canStay = h >= 2 && a < 2;
+    const choices = [];
+    if (canHeal) choices.push({ label: 'Heal the Island', kind: 'primary', onClick: () => endGame('endingHeal', 'Healing Ending', 'You chose to heal what was left broken. The fog lifts, the shore brightens, and the island begins to breathe again.') });
+    if (canLeave) choices.push({ label: 'Leave', kind: 'secondary', onClick: () => endGame('endingLeave', 'Leaving Ending', 'You chose to leave the island. The sea remembers your path, and the island keeps your silence.') });
+    if (canStay) choices.push({ label: 'Stay', kind: 'warn', onClick: () => endGame('endingStay', 'Staying Ending', 'You chose to stay. The island accepts you as part of its story, and the silence becomes shared.') });
+    choices.push({ label: 'Silent Ending', kind: 'ghost', onClick: () => endGame('endingSilent', 'Silent Ending', 'You chose silence over a clear answer. Some stories remain unfinished, but the island remembers that you came.') });
+    openModal('Final Choice', 'This is the last decision. The ending depends on what you did before this moment.', choices);
+  }
+
+  function endGame(sceneName, title, text) {
+    state.endingOpen = true;
+    saveGame();
+    closeModal();
+    fade.classList.add('on');
+    setTimeout(() => {
+      state.scene = sceneName;
+      updateHud();
+      fade.classList.remove('on');
+      openEnding(sceneName, title, text);
+      saveGame();
+    }, 350);
+  }
+
+  function openNotebookDemo() {
+    openNotebook();
+    state.activeTab = 'memories';
+    renderNotebook();
+  }
+
+  function interact() {
+    if (state.notebookOpen) { closeNotebook(); return; }
+    if (state.modalOpen) { closeModal(); return; }
+    if (state.endingOpen) return;
+
+    if (state.scene === 'arrival') {
+      if (dist(state.player.x, state.player.y, 820, 360) < 85) {
+        showOldManIntro();
+      } else {
+        showMessage('Move to the footprints and then toward the path.', 2200);
+      }
+    } else if (state.scene === 'oldMan') {
+      if (dist(state.player.x, state.player.y, 760, 330) < 110) {
+        showOldManTalk();
+      } else {
+        showMessage('Get close to the old man near the hut.', 2200);
+      }
+    } else if (state.scene === 'child') {
+      if (dist(state.player.x, state.player.y, 760, 320) < 110) {
+        showChildTalk();
+      } else {
+        showMessage('Get close to the child in the flower field.', 2200);
+      }
+    } else if (state.scene === 'sailor') {
+      if (dist(state.player.x, state.player.y, 790, 320) < 110) {
+        showSailorTalk();
+      } else {
+        showMessage('Get close to the sailor by the wreck.', 2200);
+      }
+    } else if (state.scene === 'island') {
+      if (dist(state.player.x, state.player.y, 820, 320) < 110) {
+        showIslandReact();
+      } else {
+        showMessage('Approach the island core.', 2200);
+      }
+    } else if (state.scene === 'final') {
+      showFinalEnding();
+    }
+  }
+
+  function showOldManIntro() {
+    openModal('Old Man', 'You are not from here. Most who arrive do not stay.\n\nHe watches you carefully. He has seen the island repeat itself for a long time.', [
+      { label: 'Listen', kind: 'primary', onClick: () => {
+        state.hope += 1;
+        state.understanding += 1;
+        state.flags.metOldMan = true;
+        state.flags.helpedOldMan = true;
+        state.memories.oldman_listen = 'He stayed behind and knows more than he says.';
+        saveGame();
+        closeModal();
+        showMessage('He trusts you a little more.', 2200);
+      }},
+      { label: 'Leave', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        state.memories.oldman_leave = 'I left the old man unanswered.';
+        saveGame();
+        closeModal();
+        showMessage('Some questions remain unanswered.', 2200);
+      }}
+    ]);
+  }
+
+  function showOldManTalk() {
+    openModal('Old Man', 'The island remembers what people refuse to say.\n\nIf you help me, I may tell you where the old path opens.', [
+      { label: 'Help with water', kind: 'primary', onClick: () => {
+        state.hope += 1;
+        state.understanding += 1;
+        state.flags.helpedOldMan = true;
+        state.memories.oldman_help = 'I helped the old man. He revealed a hidden path.';
+        saveGame();
+        closeModal();
+        showMessage('The hidden path is now open.', 2400);
+      }},
+      { label: 'Ignore', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        saveGame();
+        closeModal();
+        showMessage('The old man stays silent.', 2200);
+      }}
+    ]);
+  }
+
+  function showChildTalk() {
+    openModal('Child', 'Do you remember games?\n\nThe child smiles like they already know the answer you forgot.', [
+      { label: 'Stay and play', kind: 'primary', onClick: () => {
+        state.hope += 1;
+        state.understanding += 1;
+        state.flags.playedWithChild = true;
+        state.memories.child_play = 'The child taught me that the island can be read like a story.';
+        saveGame();
+        closeModal();
+        showMessage('A hopeful memory is unlocked.', 2400);
+      }},
+      { label: 'Leave', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        saveGame();
+        closeModal();
+        showMessage('The child fades back into silence.', 2200);
+      }}
+    ]);
+  }
+
+  function showSailorTalk() {
+    openModal('Sailor', 'I tried to leave. I failed.\n\nNow I carry the letter I never delivered. Can you take it where it belongs?', [
+      { label: 'Take the letter', kind: 'primary', onClick: () => {
+        state.understanding += 2;
+        state.hope += 1;
+        state.flags.deliveredLetter = true;
+        state.memories.sailor_letter = 'The sailor gave me a letter to deliver.';
+        saveGame();
+        closeModal();
+        showMessage('The letter is now in your hands.', 2400);
+      }},
+      { label: 'Tell him to move on', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        state.memories.sailor_leave = 'I told the sailor to move on, but the regret stayed.';
+        saveGame();
+        closeModal();
+        showMessage('The sailor remains at the shore.', 2200);
+      }}
+    ]);
+  }
+
+  function showIslandReact() {
+    openModal('The Island Reacts', 'The island does not speak, but it reacts to what you learned.\n\nYour previous choices now influence the final paths.', [
+      { label: 'Proceed', kind: 'primary', onClick: () => {
+        state.understanding += 1;
+        state.memories.island_reacts = 'The island reacted to my choices.';
+        saveGame();
+        closeModal();
+        showScene('final');
+      }}
+    ]);
+  }
+
+  function showOldManHintIfNeeded() {
+    if (state.scene === 'arrival' && !state.flags.arrivalHint && dist(state.player.x, state.player.y, 430, 450) < 58) {
+      state.flags.arrivalHint = true;
+      state.memories.footprints = 'Footprints lead inland.';
+      showMessage('The footprints continue into the forest.', 2500);
+      saveGame();
+    }
+  }
+
+  function updateSceneLogic(dt) {
+    const p = state.player;
+
+    if (state.scene === 'arrival') {
+      if (!state.flags.arrivalHint && dist(p.x, p.y, 420, 450) < 62) {
+        state.flags.arrivalHint = true;
+        state.memories.footprints = 'A path leads inland. Someone was here before me.';
+        showMessage('The footprints continue into the forest.', 2400);
+        saveGame();
+      }
+      if (p.x > 1000 && p.y < 420) {
+        showScene('oldMan');
+      }
+    }
+
+    if (state.scene === 'oldMan') {
+      if (!state.flags.oldManHint && dist(p.x, p.y, 760, 330) < 70) {
+        state.flags.oldManHint = true;
+        showMessage('The old man is waiting for you to speak.', 2200);
+      }
+      if ((state.flags.helpedOldMan || p.x > 1080) && p.x > 1040) {
+        showScene('child');
+      }
+    }
+
+    if (state.scene === 'child') {
+      if (!state.flags.childHint && dist(p.x, p.y, 760, 320) < 70) {
+        state.flags.childHint = true;
+        showMessage('The child is waiting among the flowers.', 2200);
+      }
+      if ((state.flags.playedWithChild || p.x > 1080) && p.x > 1040) {
+        showScene('sailor');
+      }
+    }
+
+    if (state.scene === 'sailor') {
+      if (!state.flags.sailorHint && dist(p.x, p.y, 790, 320) < 70) {
+        state.flags.sailorHint = true;
+        showMessage('The wreck smells of salt and regret.', 2200);
+      }
+      if ((state.flags.deliveredLetter || p.x > 1080) && p.x > 1040) {
+        showScene('island');
+      }
+    }
+
+    if (state.scene === 'island') {
+      if (!state.flags.islandHint && dist(p.x, p.y, 820, 320) < 70) {
+        state.flags.islandHint = true;
+        showMessage('The island core responds to what you have done.', 2200);
+      }
+      if (p.x > 1080) {
+        showScene('final');
+      }
+    }
+  }
+
+  function getJoystickVector() {
+    return { x: state.joystick.x, y: state.joystick.y };
+  }
+
+  function joystickPointerDown(e) {
+    if (state.endingOpen) return;
+    state.joystick.active = true;
+    state.joystick.pointerId = e.pointerId;
+    joyWrap.setPointerCapture(e.pointerId);
+    const r = joyWrap.getBoundingClientRect();
+    state.joystick.baseX = r.width / 2;
+    state.joystick.baseY = r.height / 2;
+    updateJoystickFromPointer(e.clientX, e.clientY, true);
+    e.preventDefault();
+  }
+  function joystickPointerMove(e) {
+    if (!state.joystick.active || e.pointerId !== state.joystick.pointerId) return;
+    updateJoystickFromPointer(e.clientX, e.clientY, false);
+    e.preventDefault();
+  }
+  function joystickPointerUp(e) {
+    if (e.pointerId !== state.joystick.pointerId) return;
+    state.joystick.active = false;
+    state.joystick.pointerId = null;
+    state.joystick.x = 0;
+    state.joystick.y = 0;
+    state.joystick.knobX = 0;
+    state.joystick.knobY = 0;
+    joyKnob.style.transform = 'translate(0px, 0px)';
+    e.preventDefault();
+  }
+  function updateJoystickFromPointer(cx, cy) {
+    const rect = joyWrap.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const dx = cx - centerX;
+    const dy = cy - centerY;
+    const max = rect.width * 0.30;
+    const len = Math.hypot(dx, dy);
+    const k = len > max ? max / len : 1;
+    const nx = dx * k;
+    const ny = dy * k;
+    const fx = nx / max;
+    const fy = ny / max;
+    state.joystick.x = fx;
+    state.joystick.y = fy;
+    state.joystick.knobX = nx;
+    state.joystick.knobY = ny;
+    joyKnob.style.transform = `translate(${nx}px, ${ny}px)`;
+  }
+
+  joyWrap.addEventListener('pointerdown', joystickPointerDown, {passive:false});
+  joyWrap.addEventListener('pointermove', joystickPointerMove, {passive:false});
+  joyWrap.addEventListener('pointerup', joystickPointerUp, {passive:false});
+  joyWrap.addEventListener('pointercancel', joystickPointerUp, {passive:false});
+
+  btnInteract.onclick = () => { audioPulse('click'); interact(); };
+  btnNotebook.onclick = () => { audioPulse('click'); if (state.notebookOpen) closeNotebook(); else openNotebook(); };
+  btnSound.onclick = () => { state.soundOn = !state.soundOn; updateHud(); saveGame(); audioPulse(state.soundOn ? 'good' : 'bad'); };
+  btnNew.onclick = () => { localStorage.removeItem(SAVE_KEY); resetGame(); };
+  btnContinue.onclick = () => {
+    const ok = loadGame();
+    if (ok) {
+      hideMenu();
+      overlay.style.pointerEvents = 'auto';
+      showMessage('Continue loaded.', 1500);
+    } else {
+      showMessage('No save found yet. Start a new game.', 1800);
+    }
+  };
+  btnNotebookDemo.onclick = () => { openNotebook(); };
+  btnModalClose.onclick = () => { audioPulse('click'); closeModal(); };
+  btnNotebookClose.onclick = () => { audioPulse('click'); closeNotebook(); };
+  btnRestart.onclick = () => { localStorage.removeItem(SAVE_KEY); closeOverlays(); resetGame(); };
+  btnBackMenu.onclick = () => { closeOverlays(); showMenu(); };
+  nbTabs.addEventListener('click', e => {
+    const b = e.target.closest('.tab');
+    if (!b) return;
+    state.activeTab = b.dataset.tab;
+    renderNotebook();
+  });
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'n' || e.key === 'N') { if (state.notebookOpen) closeNotebook(); else openNotebook(); }
+    if (e.key === 'e' || e.key === 'E' || e.key === 'Enter' || e.key === ' ') interact();
+    if (e.key === 'Escape') {
+      if (state.notebookOpen) closeNotebook();
+      else if (state.modalOpen) closeModal();
+      else if (state.endingOpen) showMenu();
+    }
+  });
+
+  function update(dt) {
+    if (menu.style.display !== 'none' || state.endingOpen) return;
+    const js = getJoystickVector();
+    const kb = keyboardVector();
+    const inputX = js.x !== 0 || js.y !== 0 ? js.x : kb.x;
+    const inputY = js.x !== 0 || js.y !== 0 ? js.y : kb.y;
+    const mag = Math.hypot(inputX, inputY);
+    const normX = mag > 0 ? inputX / mag : 0;
+    const normY = mag > 0 ? inputY / mag : 0;
+    const speed = state.player.speed * Math.min(1, mag);
+    const accel = 8.5;
+    state.player.vx = lerp(state.player.vx, normX * speed, 1 - Math.exp(-accel * dt));
+    state.player.vy = lerp(state.player.vy, normY * speed, 1 - Math.exp(-accel * dt));
+    state.player.x += state.player.vx * dt;
+    state.player.y += state.player.vy * dt;
+
+    const b = sceneBounds(state.scene);
+    state.player.x = clamp(state.player.x, b.x, b.x + b.w);
+    state.player.y = clamp(state.player.y, b.y, b.y + b.h);
+
+    state.camera.x = lerp(state.camera.x, state.player.x, 1 - Math.exp(-6 * dt));
+    state.camera.y = lerp(state.camera.y, state.player.y, 1 - Math.exp(-6 * dt));
+
+    updateSceneLogic(dt);
+
+    if (state.notebookOpen) renderNotebook();
+    if (performance.now() > state.lastMessageUntil) hideMessage();
+    saveThrottle(dt);
+  }
+
+  const keyState = {};
+  function keyboardVector() {
+    const left = keyState['ArrowLeft'] || keyState['a'] || keyState['A'];
+    const right = keyState['ArrowRight'] || keyState['d'] || keyState['D'];
+    const up = keyState['ArrowUp'] || keyState['w'] || keyState['W'];
+    const down = keyState['ArrowDown'] || keyState['s'] || keyState['S'];
+    let x = (right ? 1 : 0) - (left ? 1 : 0);
+    let y = (down ? 1 : 0) - (up ? 1 : 0);
+    const m = Math.hypot(x,y);
+    if (m > 0) { x/=m; y/=m; }
+    return {x, y};
+  }
+  window.addEventListener('keydown', e => keyState[e.key] = true);
+  window.addEventListener('keyup', e => keyState[e.key] = false);
+
+  function sceneBounds(scene) {
+    switch (scene) {
+      case 'arrival': return {x:60,y:140,w:1160,h:540};
+      case 'oldMan': return {x:60,y:140,w:1160,h:540};
+      case 'child': return {x:60,y:140,w:1160,h:540};
+      case 'sailor': return {x:60,y:120,w:1160,h:560};
+      case 'island': return {x:60,y:120,w:1160,h:560};
+      case 'final': return {x:80,y:140,w:1120,h:540};
+      default: return {x:0,y:0,w:1280,h:720};
+    }
+  }
+
+  let saveTimer = 0;
+  function saveThrottle(dt) {
+    saveTimer += dt;
+    if (saveTimer > 0.35) {
+      saveTimer = 0;
+      saveGame();
+    }
+  }
+
+  function drawScene() {
+    const d = sceneData[state.scene] || sceneData.arrival;
+    const g = ctx.createLinearGradient(0,0,0,canvas.height);
+    g.addColorStop(0, d.sky1);
+    g.addColorStop(.55, d.sky2);
+    g.addColorStop(1, d.ground);
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // Atmosphere dots
+    ctx.globalAlpha = 0.35;
+    for (let i = 0; i < 40; i++) {
+      const x = (i * 173 + time * 10 + state.camera.x * 0.3) % canvas.width;
+      const y = (i * 97 + state.camera.y * 0.2) % canvas.height;
+      ctx.fillStyle = i % 3 ? 'rgba(255,255,255,.55)' : 'rgba(167,219,255,.8)';
+      ctx.fillRect(x, y, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+
+    drawMainLayers();
+  }
+
+  function drawMainLayers() {
+    if (state.scene === 'arrival') drawArrival();
+    else if (state.scene === 'oldMan') drawOldMan();
+    else if (state.scene === 'child') drawChild();
+    else if (state.scene === 'sailor') drawSailor();
+    else if (state.scene === 'island') drawIsland();
+    else if (state.scene === 'final') drawFinal();
+    else if (state.scene.startsWith('ending')) drawEndingBackdrop();
+    else drawArrival();
+    drawPlayer();
+  }
+
+  function W(x){ return x - state.camera.x + canvas.width/2; }
+  function H(y){ return y - state.camera.y + canvas.height/2; }
+
+  function drawTerrainRect(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(W(x), H(y), w, h);
+  }
+  function drawTree(x, y, s=1, trunk='#5a4330', leaf='#28513d') {
+    const sx = W(x), sy = H(y);
+    ctx.fillStyle = trunk;
+    ctx.fillRect(sx - 8*s, sy + 24*s, 16*s, 42*s);
+    ctx.beginPath();
+    ctx.fillStyle = leaf;
+    ctx.arc(sx, sy + 12*s, 28*s, 0, Math.PI*2);
+    ctx.arc(sx - 20*s, sy + 22*s, 22*s, 0, Math.PI*2);
+    ctx.arc(sx + 20*s, sy + 22*s, 22*s, 0, Math.PI*2);
+    ctx.arc(sx, sy - 4*s, 24*s, 0, Math.PI*2);
+    ctx.fill();
+  }
+  function drawHill(x,y,w,color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(W(x-w*0.5), H(y+120));
+    ctx.quadraticCurveTo(W(x), H(y), W(x+w*0.5), H(y+120));
+    ctx.closePath();
+    ctx.fill();
+  }
+  function drawBoat(x,y,s=1) {
+    const sx=W(x), sy=H(y);
+    ctx.fillStyle = '#4f372a';
+    ctx.beginPath();
+    ctx.moveTo(sx-48*s, sy+18*s);
+    ctx.lineTo(sx+48*s, sy+18*s);
+    ctx.lineTo(sx+34*s, sy+38*s);
+    ctx.lineTo(sx-34*s, sy+38*s);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#b2d2ee';
+    ctx.fillRect(sx-3*s, sy-50*s, 6*s, 70*s);
+    ctx.fillStyle = '#ddefff';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy-48*s); ctx.lineTo(sx+32*s, sy-18*s); ctx.lineTo(sx, sy-18*s); ctx.closePath(); ctx.fill();
+  }
+  function drawFootprints(x, y, count) {
+    for (let i = 0; i < count; i++) {
+      ctx.fillStyle = 'rgba(50,35,20,.55)';
+      ctx.beginPath();
+      ctx.ellipse(W(x + i*26), H(y - i*6), 8, 5, -0.2, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  function drawPath(points, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 34;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const path = points;
+    ctx.moveTo(W(path[0]), H(path[1]));
+    for (let i = 2; i < path.length; i += 2) {
+      ctx.lineTo(W(path[i]), H(path[i+1]));
+    }
+    ctx.stroke();
+  }
+  function drawHut(x,y,s=1) {
+    const sx = W(x), sy = H(y);
+    ctx.fillStyle = '#6e5845';
+    ctx.fillRect(sx - 52*s, sy - 5*s, 104*s, 70*s);
+    ctx.fillStyle = '#3d2a22';
+    ctx.beginPath();
+    ctx.moveTo(sx - 64*s, sy - 6*s);
+    ctx.lineTo(sx, sy - 58*s);
+    ctx.lineTo(sx + 64*s, sy - 6*s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#20313b';
+    ctx.fillRect(sx - 12*s, sy + 18*s, 24*s, 28*s);
+  }
+  function drawLantern(x,y,s=1) {
+    ctx.fillStyle = '#b6a16b';
+    ctx.fillRect(W(x)-8*s,H(y)-18*s,16*s,26*s);
+    ctx.fillStyle = 'rgba(255,220,140,.35)';
+    ctx.beginPath();
+    ctx.arc(W(x), H(y)-4*s, 22*s, 0, Math.PI*2);
+    ctx.fill();
+  }
+  function drawFlowerField(x,y,w,h) {
+    ctx.fillStyle = '#24413a'; ctx.fillRect(W(x), H(y), w, h);
+    for (let i = 0; i < 60; i++) {
+      const fx = x + (i*63)%w;
+      const fy = y + (i*29)%h;
+      ctx.fillStyle = i%3===0 ? '#ffc0d3' : i%3===1 ? '#ffd78b' : '#9ff2c8';
+      ctx.beginPath();
+      ctx.arc(W(fx), H(fy), 4 + (i%2), 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  function drawStoneCircle(x,y,s=1) {
+    const sx=W(x), sy=H(y);
+    ctx.strokeStyle = '#5f6c6a';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 64*s, 0, Math.PI*2);
+    ctx.stroke();
+    for (let i=0;i<8;i++) {
+      const a = i/8 * Math.PI*2;
+      ctx.fillStyle = '#7f8d8b';
+      ctx.beginPath();
+      ctx.arc(sx + Math.cos(a)*66*s, sy + Math.sin(a)*66*s, 10*s, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  function drawSunBeam(x,y) {
+    ctx.fillStyle='rgba(255,255,255,.06)';
+    ctx.beginPath();
+    ctx.moveTo(W(x-70), H(y));
+    ctx.lineTo(W(x+70), H(y));
+    ctx.lineTo(W(x+210), H(y+320));
+    ctx.lineTo(W(x-210), H(y+320));
+    ctx.closePath();
+    ctx.fill();
+  }
+  function drawSeaCliff(x,y,w,h) {
+    ctx.fillStyle='#0b1823'; ctx.fillRect(W(x), H(y), w, h);
+    ctx.fillStyle='#0d2638'; ctx.fillRect(W(x), H(y+72), w, 108);
+    ctx.fillStyle='rgba(135,185,220,.2)';
+    for (let i=0;i<14;i++) {
+      ctx.beginPath();
+      ctx.arc(W(70 + i*92 + (Math.sin(time+i)*14)), H(330 + Math.sin(i*0.3+time)*16), 32, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  function drawWreck(x,y,s=1) {
+    const sx=W(x), sy=H(y);
+    ctx.fillStyle='#4d362a';
+    ctx.beginPath();
+    ctx.moveTo(sx-70*s, sy+20*s); ctx.lineTo(sx+30*s, sy-18*s); ctx.lineTo(sx+82*s, sy+6*s); ctx.lineTo(sx-8*s, sy+46*s); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#7b5a41';
+    ctx.fillRect(sx-30*s, sy-54*s, 8*s, 78*s);
+    ctx.fillRect(sx+14*s, sy-50*s, 8*s, 80*s);
+    ctx.fillStyle='rgba(230,240,255,.72)';
+    ctx.beginPath(); ctx.moveTo(sx-24*s, sy-54*s); ctx.lineTo(sx+22*s, sy-12*s); ctx.lineTo(sx-24*s, sy-12*s); ctx.closePath(); ctx.fill();
+  }
+  function drawCrates(x,y) {
+    const sx=W(x), sy=H(y);
+    ctx.fillStyle='#6c553f'; ctx.fillRect(sx, sy, 34, 34); ctx.fillRect(sx+38, sy+10, 28, 28);
+    ctx.fillStyle='#9b7b5c'; ctx.fillRect(sx+8, sy-26, 24, 24);
+  }
+  function drawFogBank(x,y,w,h) {
+    ctx.fillStyle='rgba(226,236,255,.06)';
+    ctx.beginPath();
+    ctx.ellipse(W(x), H(y), w*0.5, h*0.5, 0, 0, Math.PI*2);
+    ctx.ellipse(W(x+80), H(y+40), w*0.35, h*0.3, 0, 0, Math.PI*2);
+    ctx.ellipse(W(x-70), H(y+20), w*0.3, h*0.26, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  function drawZoneHint(x,y,text) {
+    const sx = W(x), sy = H(y);
+    ctx.fillStyle='rgba(255,255,255,.08)';
+    ctx.fillRect(sx-34, sy-14, 68, 28);
+    ctx.fillStyle='#fff'; ctx.font='12px system-ui'; ctx.textAlign='center';
+    ctx.fillText(text, sx, sy+4);
+  }
+  function drawWaveLines(yStart, xEnd, lines, color) {
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.18;
+    for (let i=0;i<lines;i++) {
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x=0;x<=xEnd;x+=40) {
+        const yy = yStart + i*16 + Math.sin((x*0.02)+(time*1.1)+(i*0.6))*4;
+        if (x===0) ctx.moveTo(W(x), H(yy));
+        else ctx.lineTo(W(x), H(yy));
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawArrival() {
+    drawTerrainRect(0, 430, 1280, 290, '#0d263b');
+    drawWaveLines(434, 1280, 7, '#9ac6e5');
+    drawTerrainRect(0, 470, 1280, 160, '#5c4f3b');
+    drawHill(980, 170, 340, '#143124');
+    for (const t of [
+      [420,380,1.0,'#274c3c'], [530,356,1.1,'#234536'], [640,364,1.0,'#28503b'], [760,346,1.2,'#21402f'], [890,356,1.1,'#254938']
+    ]) drawTree(...t);
+    drawBoat(240, 440, 1.0);
+    drawFootprints(340, 486, 6);
+    drawZoneHint(420, 450, 'Footprints');
+    drawZoneHint(980, 360, 'Forest path');
+    ctx.fillStyle='rgba(255,255,255,.05)';
+    ctx.fillRect(W(980)-16, H(360)-16, 32, 32);
+  }
+
+  function drawOldMan() {
+    drawTerrainRect(0, 360, 1280, 360, '#14261c');
+    drawPath([120,560, 240,520, 390,490, 540,450, 690,395, 820,330], '#6f5d46');
+    drawHill(1090, 170, 340, '#1f3626');
+    for (const t of [
+      [170,360,1.2,'#204130'], [310,340,1.0,'#24483a'], [440,360,1.1,'#1f3d2d'], [600,330,1.1,'#234535'], [700,350,1.0,'#264a38']
+    ]) drawTree(...t);
+    drawHut(840, 315, 1.2);
+    drawLantern(932, 292, 1.0);
+    drawZoneHint(760, 330, 'Old Man');
+    drawZoneHint(1100, 250, 'Next');
+  }
+
+  function drawChild() {
+    drawTerrainRect(0, 370, 1280, 350, '#182f30');
+    drawFlowerField(0, 400, 1280, 220);
+    drawStoneCircle(860, 300, 1.0);
+    for (const t of [
+      [220,320,1.0,'#2d5f41'], [350,350,1.2,'#26513b'], [1080,325,1.1,'#2c563f']
+    ]) drawTree(...t);
+    drawSunBeam(600, 130);
+    drawZoneHint(760, 320, 'Child');
+    drawZoneHint(1100, 240, 'Next');
+  }
+
+  function drawSailor() {
+    drawTerrainRect(0, 390, 1280, 330, '#111f2b');
+    drawSeaCliff(0, 290, 1280, 430);
+    drawWreck(850, 310, 1.1);
+    drawCrates(980, 390);
+    drawFogBank(250, 130, 420, 240);
+    drawFogBank(960, 150, 320, 180);
+    drawZoneHint(790, 320, 'Sailor');
+    drawZoneHint(1110, 250, 'Next');
+  }
+
+  function drawIsland() {
+    drawTerrainRect(0, 360, 1280, 360, '#102025');
+    drawTerrainRect(0, 460, 1280, 100, '#173136');
+    drawHill(640, 140, 420, '#132c23');
+    drawStoneCircle(820, 310, 1.25);
+    drawStoneCircle(490, 320, 0.9);
+    drawStoneCircle(1030, 300, 0.8);
+    drawZoneHint(820, 320, 'Core');
+    drawZoneHint(1100, 250, 'Final');
+    ctx.fillStyle='rgba(160,220,255,.08)';
+    ctx.beginPath();
+    ctx.arc(W(820), H(310), 98, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function drawFinal() {
+    drawTerrainRect(0, 360, 1280, 360, '#0b1118');
+    drawHill(650, 150, 500, '#15202d');
+    const paths = [
+      {x:360,y:460,col:'#7fca9d', name:'Heal'},
+      {x:640,y:460,col:'#86b9ff', name:'Leave'},
+      {x:920,y:460,col:'#ff9b9b', name:'Stay'}
+    ];
+    paths.forEach(p => {
+      ctx.fillStyle = p.col;
+      ctx.globalAlpha = 0.18;
+      ctx.fillRect(W(p.x)-60,H(p.y)-60,120,120);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = p.col;
+      ctx.beginPath();
+      ctx.arc(W(p.x), H(p.y), 26, 0, Math.PI*2);
+      ctx.fill();
+      drawZoneHint(p.x, p.y, p.name);
+    });
+  }
+
+  function drawEndingBackdrop() {
+    const d = sceneData[state.scene] || sceneData.endingSilent;
+    const g = ctx.createLinearGradient(0,0,0,canvas.height);
+    g.addColorStop(0, d.sky1); g.addColorStop(.55, d.sky2); g.addColorStop(1, d.ground);
+    ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.globalAlpha = 0.2;
+    for (let i=0;i<20;i++) {
+      ctx.fillStyle = i%2 ? 'rgba(255,255,255,.12)' : 'rgba(160,220,255,.1)';
+      ctx.beginPath();
+      ctx.arc((i*83 + time*10) % canvas.width, 120 + (i*27 % 280), 40 + (i%3)*10, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPlayer() {
+    const x = W(state.player.x), y = H(state.player.y);
+    ctx.save();
+    // shadow
+    ctx.fillStyle='rgba(0,0,0,.25)';
+    ctx.beginPath(); ctx.ellipse(x, y+18, 16, 8, 0, 0, Math.PI*2); ctx.fill();
+    // body
+    ctx.fillStyle='#f4f7ff';
+    ctx.beginPath(); ctx.arc(x, y-3, 16, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#87b8ff';
+    ctx.beginPath(); ctx.roundRect(x-13, y+8, 26, 24, 9); ctx.fill();
+    ctx.fillStyle='#2d3a4f';
+    ctx.beginPath(); ctx.roundRect(x-12, y+30, 10, 18, 4); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+2, y+30, 10, 18, 4); ctx.fill();
+    // direction indicator
+    const js = getJoystickVector();
+    const k = Math.hypot(js.x, js.y);
+    if (k > 0.1) {
+      ctx.strokeStyle = '#d8f3ff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + js.x * 24, y + js.y * 24);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function resolveInteractions() {
+    // Called when scene changes based on movement
+    if (state.scene === 'arrival') {
+      if (!state.flags.arrivalHint && dist(state.player.x, state.player.y, 420, 450) < 58) {
+        state.flags.arrivalHint = true;
+        state.memories.footprints = 'Footprints lead inland.';
+        showMessage('The footprints continue into the forest.', 2400);
+        saveGame();
+      }
+    }
+  }
+
+  function loop(ts) {
+    const dt = Math.min(0.033, (ts - (loop.last || ts)) / 1000);
+    loop.last = ts;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawScene();
+
+    if (menu.style.display !== 'none') {
+      // render menu background only; controls disabled
+    } else {
+      update(dt);
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  function updateFrameText() {
+    updateHud();
+    if (state.notebookOpen) renderNotebook();
+  }
+
+  function resize() {
+    dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const cssW = innerWidth, cssH = innerHeight;
+    canvas.width = Math.floor(cssW * dpr);
+    canvas.height = Math.floor(cssH * dpr);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    // Keep joystick in corner
+    joyWrap.style.left = '16px';
+    joyWrap.style.bottom = '16px';
+  }
+
+  function startMenu() {
+    menu.style.display = 'block';
+    overlay.style.pointerEvents = 'auto';
+    updateHud();
+    updateContinueButton();
+  }
+
+  function updateContinueButton() {
+    const hasSave = !!localStorage.getItem(SAVE_KEY);
+    btnContinue.disabled = !hasSave;
+    btnContinue.style.opacity = hasSave ? '1' : '.45';
+  }
+
+  function hostToContinue() {
+    if (!loadGame()) {
+      showMessage('No save found yet. Start a new game.', 2200);
+      return;
+    }
+    closeOverlays();
+    hideMenu();
+    overlay.style.pointerEvents = 'auto';
+    showMessage('Continue loaded.', 1600);
+    saveGame();
+  }
+
+  btnNew.onclick = () => { localStorage.removeItem(SAVE_KEY); resetGame(); };
+  btnContinue.onclick = hostToContinue;
+  btnNotebookDemo.onclick = () => { openNotebook(); };
+  btnModalClose.onclick = () => { closeModal(); };
+  btnNotebookClose.onclick = () => { closeNotebook(); };
+  btnRestart.onclick = () => { localStorage.removeItem(SAVE_KEY); closeOverlays(); resetGame(); };
+  btnBackMenu.onclick = () => { closeOverlays(); menu.style.display = 'block'; updateContinueButton(); };
+  btnInteract.onclick = () => interact();
+  btnNotebook.onclick = () => { if (state.notebookOpen) closeNotebook(); else openNotebook(); };
+  btnSound.onclick = () => { state.soundOn = !state.soundOn; updateHud(); saveGame(); };
+
+  nbTabs.addEventListener('click', (e) => {
+    const b = e.target.closest('.tab');
+    if (!b) return;
+    state.activeTab = b.dataset.tab;
+    renderNotebook();
+  });
+
+  function joystickDown(e) {
+    if (state.endingOpen) return;
+    state.joystick.active = true;
+    state.joystick.pointerId = e.pointerId;
+    joyWrap.setPointerCapture(e.pointerId);
+    updateJoystick(e.clientX, e.clientY);
+    e.preventDefault();
+  }
+  function joystickMove(e) {
+    if (!state.joystick.active || e.pointerId !== state.joystick.pointerId) return;
+    updateJoystick(e.clientX, e.clientY);
+    e.preventDefault();
+  }
+  function joystickUp(e) {
+    if (e.pointerId !== state.joystick.pointerId) return;
+    state.joystick.active = false;
+    state.joystick.pointerId = null;
+    state.joystick.x = 0;
+    state.joystick.y = 0;
+    joyKnob.style.transform = 'translate(0px, 0px)';
+    e.preventDefault();
+  }
+  function updateJoystick(clientX, clientY) {
+    const r = joyWrap.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const max = r.width * 0.31;
+    const len = Math.hypot(dx, dy);
+    const k = len > max ? max / len : 1;
+    const ox = dx * k;
+    const oy = dy * k;
+    joyKnob.style.transform = `translate(${ox}px, ${oy}px)`;
+    state.joystick.x = ox / max;
+    state.joystick.y = oy / max;
+  }
+  joyWrap.addEventListener('pointerdown', joystickDown, {passive:false});
+  joyWrap.addEventListener('pointermove', joystickMove, {passive:false});
+  joyWrap.addEventListener('pointerup', joystickUp, {passive:false});
+  joyWrap.addEventListener('pointercancel', joystickUp, {passive:false});
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'n' || e.key === 'N') {
+      if (state.notebookOpen) closeNotebook(); else openNotebook();
+    }
+    if (e.key === 'e' || e.key === 'E' || e.key === 'Enter' || e.key === ' ') interact();
+    if (e.key === 'Escape') {
+      if (state.notebookOpen) closeNotebook();
+      else if (state.modalOpen) closeModal();
+      else if (state.endingOpen) { closeOverlays(); menu.style.display = 'block'; }
+    }
+  });
+
+  function gameInteractions() {
+    if (state.scene === 'arrival' && dist(state.player.x, state.player.y, 980, 360) < 70) {
+      showScene('oldMan');
+    } else if (state.scene === 'oldMan') {
+      if ((state.flags.helpedOldMan && state.player.x > 1040) || state.player.x > 1090) showScene('child');
+    } else if (state.scene === 'child') {
+      if ((state.flags.playedWithChild && state.player.x > 1040) || state.player.x > 1090) showScene('sailor');
+    } else if (state.scene === 'sailor') {
+      if ((state.flags.deliveredLetter && state.player.x > 1040) || state.player.x > 1090) showScene('island');
+    } else if (state.scene === 'island') {
+      if (state.player.x > 1090) showScene('final');
+    }
+  }
+
+  function applyBounds() {
+    const b = sceneBounds(state.scene);
+    state.player.x = clamp(state.player.x, b.x, b.x + b.w);
+    state.player.y = clamp(state.player.y, b.y, b.y + b.h);
+  }
+
+  function update(dt) {
+    if (menu.style.display !== 'none' || state.endingOpen) return;
+
+    const kb = keyboardVector();
+    const js = {x: state.joystick.x, y: state.joystick.y};
+    const input = (Math.hypot(js.x, js.y) > 0.02) ? js : kb;
+    const mag = Math.hypot(input.x, input.y);
+    const nx = mag > 0 ? input.x / mag : 0;
+    const ny = mag > 0 ? input.y / mag : 0;
+    const target = state.player.speed * Math.min(1, mag);
+    const t = 1 - Math.exp(-10.0 * dt);
+    state.player.vx = lerp(state.player.vx, nx * target, t);
+    state.player.vy = lerp(state.player.vy, ny * target, t);
+    state.player.x += state.player.vx * dt;
+    state.player.y += state.player.vy * dt;
+    applyBounds();
+    state.camera.x = lerp(state.camera.x, state.player.x, 1 - Math.exp(-6.5 * dt));
+    state.camera.y = lerp(state.camera.y, state.player.y, 1 - Math.exp(-6.5 * dt));
+    gameInteractions();
+    updateSceneExtras();
+    if (performance.now() > state.lastMessageUntil) hideMessage();
+    saveThrottle(dt);
+  }
+
+  function updateSceneExtras() {
+    if (state.scene === 'arrival' && !state.flags.arrivalHint && dist(state.player.x, state.player.y, 420, 450) < 58) {
+      state.flags.arrivalHint = true;
+      state.memories.footprints = 'A path leads inland. Someone was here before me.';
+      showMessage('The footprints continue into the forest.', 2400);
+      saveGame();
+    }
+    if (state.scene === 'oldMan' && !state.flags.oldManHint && dist(state.player.x, state.player.y, 760, 330) < 70) {
+      state.flags.oldManHint = true;
+      showMessage('The old man is waiting for you to speak.', 2200);
+    }
+    if (state.scene === 'child' && !state.flags.childHint && dist(state.player.x, state.player.y, 760, 320) < 70) {
+      state.flags.childHint = true;
+      showMessage('The child is waiting among the flowers.', 2200);
+    }
+    if (state.scene === 'sailor' && !state.flags.sailorHint && dist(state.player.x, state.player.y, 790, 320) < 70) {
+      state.flags.sailorHint = true;
+      showMessage('The wreck smells of salt and regret.', 2200);
+    }
+    if (state.scene === 'island' && !state.flags.islandHint && dist(state.player.x, state.player.y, 820, 320) < 70) {
+      state.flags.islandHint = true;
+      showMessage('The island core responds to what you have done.', 2200);
+    }
+  }
+
+  function updateJoystickDirection() {
+    // nothing extra required, drag already updates vector
+  }
+
+  function draw() {
+    drawScene();
+    drawPlayer();
+  }
+
+  function mainLoop(ts) {
+    const dt = Math.min(0.033, (ts - (mainLoop.last || ts)) / 1000);
+    mainLoop.last = ts;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawScene();
+    if (menu.style.display === 'none' && !state.endingOpen) {
+      update(dt);
+    }
+    requestAnimationFrame(mainLoop);
+  }
+
+  function ensureMenuState() {
+    menu.style.display = 'block';
+    overlay.style.pointerEvents = 'auto';
+    updateContinueButton();
+    updateHud();
+  }
+
+  function closeModalIfOpen() { if (state.modalOpen) closeModal(); }
+  function closeNotebookIfOpen() { if (state.notebookOpen) closeNotebook(); }
+
+  btnNotebook.addEventListener('click', () => {
+    if (state.notebookOpen) closeNotebook(); else openNotebook();
+  });
+
+  btnInteract.addEventListener('click', interact);
+  btnSound.addEventListener('click', () => {
+    state.soundOn = !state.soundOn;
+    updateHud();
+    saveGame();
+    audioPulse(state.soundOn ? 'good' : 'bad');
+  });
+  btnNew.addEventListener('click', () => { localStorage.removeItem(SAVE_KEY); resetGame(); });
+  btnContinue.addEventListener('click', () => {
+    if (loadGame()) {
+      menu.style.display = 'none';
+      showMessage('Continue loaded.', 1500);
+    } else {
+      showMessage('No save found yet.', 1800);
+    }
+  });
+  btnNotebookDemo.addEventListener('click', () => openNotebook());
+  btnModalClose.addEventListener('click', closeModal);
+  btnNotebookClose.addEventListener('click', closeNotebook);
+  btnRestart.addEventListener('click', () => { localStorage.removeItem(SAVE_KEY); closeOverlays(); resetGame(); });
+  btnBackMenu.addEventListener('click', () => { closeOverlays(); menu.style.display = 'block'; updateContinueButton(); });
+  nbTabs.addEventListener('click', (e) => {
+    const b = e.target.closest('.tab');
+    if (!b) return;
+    state.activeTab = b.dataset.tab;
+    renderNotebook();
+  });
+
+  function showOldManIntro() {
+    openModal('Old Man', 'You are not from here. Most who arrive do not stay.\n\nHe watches you carefully. He has seen the island repeat itself for a long time.', [
+      { label: 'Listen', kind: 'primary', onClick: () => {
+        state.hope += 1;
+        state.understanding += 1;
+        state.flags.metOldMan = true;
+        state.flags.helpedOldMan = true;
+        state.memories.oldman_listen = 'He stayed behind and knows more than he says.';
+        saveGame();
+        closeModal();
+        showMessage('He trusts you a little more.', 2200);
+      }},
+      { label: 'Leave', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        state.memories.oldman_leave = 'I left the old man unanswered.';
+        saveGame();
+        closeModal();
+        showMessage('Some questions remain unanswered.', 2200);
+      }}
+    ]);
+  }
+
+  function showOldManTalk() {
+    openModal('Old Man', 'The island remembers what people refuse to say.\n\nIf you help me, I may tell you where the old path opens.', [
+      { label: 'Help with water', kind: 'primary', onClick: () => {
+        state.hope += 1;
+        state.understanding += 1;
+        state.flags.helpedOldMan = true;
+        state.memories.oldman_help = 'I helped the old man. He revealed a hidden path.';
+        saveGame();
+        closeModal();
+        showMessage('The hidden path is now open.', 2400);
+      }},
+      { label: 'Ignore', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        saveGame();
+        closeModal();
+        showMessage('The old man stays silent.', 2200);
+      }}
+    ]);
+  }
+
+  function showChildTalk() {
+    openModal('Child', 'Do you remember games?\n\nThe child smiles like they already know the answer you forgot.', [
+      { label: 'Stay and play', kind: 'primary', onClick: () => {
+        state.hope += 1;
+        state.understanding += 1;
+        state.flags.playedWithChild = true;
+        state.memories.child_play = 'The child taught me that the island can be read like a story.';
+        saveGame();
+        closeModal();
+        showMessage('A hopeful memory is unlocked.', 2400);
+      }},
+      { label: 'Leave', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        saveGame();
+        closeModal();
+        showMessage('The child fades back into silence.', 2200);
+      }}
+    ]);
+  }
+
+  function showSailorTalk() {
+    openModal('Sailor', 'I tried to leave. I failed.\n\nNow I carry the letter I never delivered. Can you take it where it belongs?', [
+      { label: 'Take the letter', kind: 'primary', onClick: () => {
+        state.understanding += 2;
+        state.hope += 1;
+        state.flags.deliveredLetter = true;
+        state.memories.sailor_letter = 'The sailor gave me a letter to deliver.';
+        saveGame();
+        closeModal();
+        showMessage('The letter is now in your hands.', 2400);
+      }},
+      { label: 'Tell him to move on', kind: 'warn', onClick: () => {
+        state.avoidance += 1;
+        state.memories.sailor_leave = 'I told the sailor to move on, but the regret stayed.';
+        saveGame();
+        closeModal();
+        showMessage('The sailor remains at the shore.', 2200);
+      }}
+    ]);
+  }
+
+  function showIslandReact() {
+    openModal('The Island Reacts', 'The island does not speak, but it reacts to what you learned.\n\nYour previous choices now influence the final paths.', [
+      { label: 'Proceed', kind: 'primary', onClick: () => {
+        state.understanding += 1;
+        state.memories.island_reacts = 'The island reacted to my choices.';
+        saveGame();
+        closeModal();
+        showScene('final');
+      }}
+    ]);
+  }
+
+  function showFinalChoice() {
+    const canHeal = state.hope >= 2 && state.understanding >= 2;
+    const canLeave = state.understanding >= 2;
+    const canStay = state.hope >= 2 && state.avoidance < 2;
+    const choices = [];
+    if (canHeal) choices.push({ label: 'Heal the Island', kind: 'primary', onClick: () => endGame('endingHeal', 'Healing Ending', 'You chose to heal what was left broken. The fog lifts, the shore brightens, and the island begins to breathe again.') });
+    if (canLeave) choices.push({ label: 'Leave', kind: 'secondary', onClick: () => endGame('endingLeave', 'Leaving Ending', 'You chose to leave the island. The sea remembers your path, and the island keeps your silence.') });
+    if (canStay) choices.push({ label: 'Stay', kind: 'warn', onClick: () => endGame('endingStay', 'Staying Ending', 'You chose to stay. The island accepts you as part of its story, and the silence becomes shared.') });
+    choices.push({ label: 'Silent Ending', kind: 'ghost', onClick: () => endGame('endingSilent', 'Silent Ending', 'You chose silence over a clear answer. Some stories remain unfinished, but the island remembers that you came.') });
+    openModal('Final Choice', 'This is the last decision. The ending depends on what you did before this moment.', choices);
+  }
+
+  function endGame(sceneName, title, text) {
+    saveGame();
+    closeModal();
+    fade.classList.add('on');
+    setTimeout(() => {
+      state.scene = sceneName;
+      state.endingOpen = true;
+      updateHud();
+      fade.classList.remove('on');
+      openEnding(sceneName, title, text);
+      saveGame();
+    }, 350);
+  }
+
+  function openEnding(kind, title, text) {
+    ending.style.display = 'block';
+    endingLabel.textContent = title;
+    endingText.textContent = text;
+    modal.style.display = 'none';
+    notebook.style.display = 'none';
+  }
+
+  function renderNotebook() {
+    const arr = state.activeTab === 'memories' ? note.memories : state.activeTab === 'people' ? note.people : note.symbols;
+    nbContent.textContent = arr.map(([k,v]) => `• ${k}: ${v}`).join('\n\n');
+    nbStats.textContent = `Hope: ${state.hope} • Understanding: ${state.understanding} • Avoidance: ${state.avoidance}`;
+    nbTabs.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === state.activeTab));
+  }
+
+  function openNotebook() {
+    state.notebookOpen = true;
+    notebook.style.display = 'block';
+    renderNotebook();
+  }
+
+  function closeNotebook() {
+    notebook.style.display = 'none';
+    state.notebookOpen = false;
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+    state.modalOpen = false;
+  }
+
+  function start() {
+    resize();
+    updateHud();
+    ensureMenuState();
+    const ok = loadGame();
+    if (ok) {
+      btnContinue.disabled = false;
+      btnContinue.style.opacity = '1';
+    } else {
+      btnContinue.disabled = true;
+      btnContinue.style.opacity = '.45';
+    }
+    requestAnimationFrame(mainLoop);
+  }
+
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', resize);
+
+  // Keep button press handling safe on mobile.
+  document.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    if (state.soundOn) audioPulse('click');
+  }, {passive:true});
+
+  // If a saved game exists, continue button should work.
+  updateContinueButton();
+
+  // Create one-time hint memory for notebook demo.
+  state.memories.intro = 'I arrived on the island.';
+  updateHud();
+  start();
+})();
+</script>
+</body>
+</html>
